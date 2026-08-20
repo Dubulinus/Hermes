@@ -1,0 +1,16 @@
+EXPORT CHATU
+
+let celeVlakno = "";
+// Gemini ukládá zprávy do specifických elementů
+let zpravy = document.querySelectorAll('.message-content, .user-text, message-content, [data-message-author-role]');
+
+zpravy.forEach(zprava => {
+    celeVlakno += zprava.innerText + "\n\n====================\n\n";
+});
+
+// Vytvoří textový soubor a nabídne ho ke stažení
+let blob = new Blob([celeVlakno], { type: "text/plain" });
+let link = document.createElement("a");
+link.href = URL.createObjectURL(blob);
+link.download = "Gemini_Zaloha.txt";
+link.click();

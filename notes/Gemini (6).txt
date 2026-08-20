@@ -1,0 +1,155 @@
+
+
+====================
+
+
+
+====================
+
+Je středa, minutu po půlnoci. Ty jsi regulérní netopýr, juniore. Místo abys spal před školou, řešíš tu, jak lovit mudly na trhu. Líbí se mi to, ale pamatuj: nevyspalý trader dělá chyby, které ho stojí peníze.
+
+Pojďme si to rozebrat, protože ses právě dotkl psychologie a vyhodnocování, což je fáze, kde se systémy buď stávají legendami, nebo končí v propadlišti dějin.
+
+1. Pitva: Jak se učíš ty a jak se učí bot
+
+Bot z podstaty věci necítí vinu, nestydí se a nemá "aha momenty" ve sprše. Když prodělá, je to pro něj jen číslo. Pokud ho chceš naučit, proč prodělal, musíš pro něj (i pro sebe) postavit Pitevnu (Trade Log Analyzer).
+
+Jak to funguje: Ve chvíli, kdy Bot_MARKETPAL otevře obchod, nezapíše do logu jen "Koupil jsem AAPL za 150 USD". On tam musí "vyfotit" celou tu svou Feature Matrix v dané milisekundě. Zkopíruje si aktuální HDP, RSI, RVOL, zpoždění lodí, všechno. Uloží to jako jeden řádek do obří tabulky Trade_History.parquet.
+
+Jak z toho zjistíš příčinu: Jednou za měsíc vezmeš tuhle tabulku a podíváš se jen na ztrátové obchody. Můžeš na to pustit jednoduchý skript, který bude hledat společné jmenovatele. Najednou zjistíš: "Aha! V 80 % mých nejhorších ztrát byl index VIX nad 30 a zároveň byl pátek odpoledne."
+
+Učení: Tímhle jsi ty našel příčinu. Následně jdeš do kódu a přidáš pravidlo: "V pátek odpoledne, pokud je VIX > 30, zakaž nákupy." Bot se učí přes tvé úpravy na základě tvrdých dat.
+
+2. Technická analýza (Zbraň proti mudlům)
+
+Technická analýza (TA) typu "hlava a ramena" nebo "dvojité dno" je sama o sobě často astrologie pro muže. Ale máš naprostou pravdu v jedné věci: mudlové (retail) tomu věří. A protože tomu věří, chovají se podle toho. TA se stává sebesplňujícím proroctvím, a to znamená, že je tam obrovská likvidita, kterou velryby chtějí sežrat.
+
+Jak to implementuješ: V Pythonu existují geniální knihovny jako TA-Lib nebo pandas-ta. Dáš jim svá OHLCV data a jedním řádkem kódu si necháš vypočítat RSI (Relative Strength Index), klouzavé průměry (SMA) nebo MACD.
+
+Jak to zneužiješ: Normální retail trader vidí: „RSI je na 30 (přeprodáno), musím koupit!“
+Tvoje AI ale dostane tohle číslo jako pouhý jeden z mnoha vstupů. Naučíš bota pravidlo: „Když je RSI na 30, znamená to, že retail zběsile nakupuje dno. Nech je. Počkej, až to spadne ještě o 2 % (Stop Hunt), objem vystřelí do nebes, a teprve pak začni agresivně nakupovat ty.“ Technickou analýzu nepoužíváš jako kompas, ale jako mapu toho, kde právě kempuje nepřítel.
+
+3. Falešný koncept "Jasného Winu"
+
+Tady tě musím jako senior zastavit a seřvat. Píšeš: "Co když se najde pattern, je to jasnej win, ale bot to nekoupí, protože index zavelí proti a nevidí celý picture?"
+
+Šéfe, probuď se. V tradingu neexistuje nic jako "jasnej win". Každý obchod je jen sázka s určitou pravděpodobností. Pokud tvůj systém detekuje skvělou past na retail, ale tvůj nadřazený makro-index (např. drtivý propad S&P 500) zavelí STOP, tak bot udělal přesně to, k čemu jsi ho postavil.
+
+Představ si, že vidíš úžasnou technickou formaci na akciích aerolinek. Jasná věc na long. Ale tvůj index pro alternativní data zrovna zaregistroval, že byla uzavřena letiště kvůli erupci sopky. Kdyby bot poslechl tu "jasnou" technickou past, vykrvácel by.
+
+Když se indikátory hádají, bot MUSÍ zůstat stranou. Ochrana kapitálu má vždy absolutní přednost před zmeškaným ziskem (FOMO). Zmeškaný zisk tě nezabije, ignorování vlastního risk managementu ano.
+
+4. Hardcodování "Vždycky dělej tohle"
+
+Ptáš se, jestli můžeš botovi natvrdo nařídit pravidlo: "Když retail dělá X, ty dělej VŽDYCKY Y."
+
+Ano, technicky tomu v architektuře říkáme Heuristický override (Pravidlo přepsání). Běžně se to používá. Na konci svého Představenstva modelů (to, co jsme řešili minule) prostě přidáš blok tvrdých IF podmínek.
+
+Například:
+
+Python
+# Pokud je extrém na retail sentimentu, ignoruj AI a jdi do proti-obchodu
+if retail_dumb_money_index > 95 and volume_spike_detected:
+    execute_trade("SHORT")
+    override_ai_models = True
+
+
+Můžeš mu natvrdo zakázat nebo přikázat akce za specifických podmínek, které AI model neumí sám dobře uchopit. Je to tvůj kód, ty jsi bůh téhle infrastruktury. Ale pamatuj, že slovo "vždycky" se na trzích nevyplácí, protože i velryby mění své strategie, když si jich někdo všimne.
+
+A teď reálná zkouška. Máš po půlnoci, za chvíli svítá a ten mítink s Claudem tě nemine. Než to zapíchneš, pověz mi: kterou z těchto psychologických zbraní (Logování, lovení přes TA-Lib, nebo tvrdá pravidla Overridu) chceš zakomponovat do té naší architektury jako úplně první ochranný val?
+
+====================
+
+
+
+====================
+
+
+
+====================
+
+
+
+====================
+
+
+
+====================
+
+
+
+====================
+
+To, že už máš .env a .gitignore vyřešené, ti právě zachránilo zadek i virtuální peněženku. Většina lidí na to přijde až ve chvíli, kdy jim nějaký bot z Číny vykrade API klíče na GitHubu a oni ráno zjistí, že přes noc nakoupili kryptoměny za tisíce dolarů. Za tohle máš bod.
+
+Pojďme se podívat na ty tvoje nové nápady a na hádanku s časem.
+
+1. Nálada zaměstnanců a spotřebitelů (OSINT Zlatý důl)
+
+Chceš vědět, co si lidi myslí, aniž bys platil za drahé průzkumy? Odpověď leží tam, kde si lidé nejvíc stěžují, když si myslí, že je nikdo nesleduje.
+
+Zaměstnanecký špión (Reddit): Nechoď na oficiální fóra. Otevři si přes PRAW (free Python Reddit API) subreddity jako r/Target, r/Walmart, r/Starbucks nebo r/Chipotle. Tady se scházejí frustrovaní zaměstnanci. Pokud začneš ve velkém detekovat klíčová slova jako "cutting hours" (zkracují nám směny), "hiring freeze" (stopka nábírání) nebo "empty shelves" (prázdné regály), víš s absolutní jistotou, že firma bude mít příští kvartál hrozná čísla. Zkracování směn je první signál klesajících tržeb.
+
+Spotřebitelský špión (App Store Scrapers): Každá moderní firma (od bank přes fastfoody po streamovací služby) má aplikaci. Existují free open-source knihovny (např. google-play-scraper), které ti stáhnou tisíce nejnovějších recenzí. Pokud průměrné hodnocení appky spadne z 4.5 na 2.1 hvězdy během týdne po novém updatu (viz kauza Sonos), tvoje AI zachytí katastrofu dřív, než to vyjde v novinách.
+
+Glassdoor: Oficiální API je těžké získat, ale existují web scrapery, které hlídají průměrné hodnocení CEO a náladu ve firmě. Pokud CEO najednou spadne oblíbenost pod 50 %, ve firmě zuří válka.
+
+2. Timezone Hell: Hádanka pro tebe
+
+Chtěl jsi k tomu dotlačit, tak se ukaž, inženýre.
+Trh je v New Yorku. Tvoje Malina a Ghettoserver hučí u tebe v Brně. Amerika přechází na letní čas klidně o dva nebo tři týdny jindy než Evropa. Kdybys v Pythonu ukládal čas jako "15:30", za půl roku se ti bot probudí do zavřené burzy, zpanikaří a zhroutí se.
+
+Tvoje hádanka: Jaký specifický formát (nebo datový standard) musí tvůj stahovač vždy a bezpodmínečně použít při převodu jakéhokoliv data z API do tvého Parquet souboru, aby ignoroval politiku, letní časy, fyzickou lokaci serveru a byl pro počítače absolutní pravdou od 1. ledna 1970? Co přesně nakážeš Claudovi, aby nastavil u každého datetime objektu?
+
+3. Outside the Box (Slepá místa, která tě zničí)
+
+Chtěl jsi další katastrofické scénáře a systémové věci. Tady jsou tři, na které jsme vůbec nesáhli:
+
+Fenomén "Fat Finger" (Tlustý prst bota): Co když AI kvůli nějaké matematické anomálii v indexu (např. dělení nulou při extrémním VIXu) vyhodnotí velikost pozice jako 15000 % tvého účtu? Skript zkusí koupit milion akcií. Broker tě sice odmítne (nemáš margin), ale pokud máš pákový účet, můžeš se zničit.
+
+Řešení: Tvůj Risk Manager modul musí mít absolutní, nepřekročitelný hardcoded strop. Např.: MAX_SHARES_PER_ORDER = 50. Ať si AI říká co chce, víc přes ten trychtýř fyzicky neprojde.
+
+Zombie Procesy a Klonování: Představ si, že spouštíš bota. Skript z nějakého důvodu zamrzne. Ty ho netrpělivě spustíš znovu v druhém okně terminálu. Najednou ti na serveru běží dva stejní boti, oba se dívají na stejná data, a pošlou brokerovi dvojnásobný nákupní příkaz.
+
+Řešení: Tvůj kód musí při startu vytvořit tzv. PID Lock soubor. Když se bot spustí, zapíše na disk malý souborek. Pokud zkusíš spustit druhého, ten uvidí souborek a řekne: "Zadrž, už běžím, nebudu nic duplikovat" a sám se vypne.
+
+Data Drift (Plíživá smrt strategie): Najdeš hranu na trhu (edge). Rok to vydělává. Trh se ale změní (začnou ho ovládat jiné algoritmy) a tvoje strategie začne pomalu prodělávat.
+
+Řešení: Nečekáš, až ztratíš celý účet. Bot musí sledovat klouzavý průměr své vlastní "Equity Curve" (křivky tvého kapitálu). Pokud tvoje celkové zisky spadnou pod svůj vlastní 50denní průměr, bot přepne sám sebe zpět do "Paper Trading" módu. Stále obchoduje, ale už jen s virtuálními penězi, dokud strategii nespravíš nebo dokud se podmínky na trhu nevrátí do normálu.
+
+Až mi odpovíš na tu časovou hádanku, jsi připravený napsat ten úvodní prompt pro Clauda. Dej vědět, jestli máš to správné slovo.
+
+====================
+
+Lokální čas? To by byla naprostá sebevražda, šéfe. Vítej do pasti, do které spadne každý junior, a pak se v březnu diví, proč mu bot nakoupil do zavřené burzy.
+
+1. Časová pravda: Svatý grál jménem UTC
+
+Odpověď na hádanku je UTC (Coordinated Universal Time), případně formát známý jako Unix Timestamp (počet sekund od 1. ledna 1970).
+
+Proč lokální čas zabíjí: U nás se mění zimní a letní čas poslední víkend v březnu a říjnu. V New Yorku se to ale mění v úplně jiné týdny! Kdybys používal lokální čas, vzniknou ti v datech během těchto přechodných týdnů fantomové hodiny (kdy čas skočí zpět a data se přepíšou) nebo černé díry (kdy čas přeskočí). Pro databázi je to smrt.
+
+Pravidlo pro Clauda: Tvůj stahovač musí vzít jakákoliv data (ať už přijdou z Yahoo v newyorském čase, nebo z Evropy) a okamžitě, nekompromisně je převést do UTC timezone-aware datetime objektu. Do Parquet souboru se smí zapsat jedině UTC. Až si to budeš chtít v logu přečíst lidským okem, skript ti to na monitor přeloží do tvého lokálního času, ale bot musí myslet striktně v UTC.
+
+2. Eliminace Zombíků a Tlustých prstů
+
+Zapsáno a schváleno. Tohle jsou přesně ty nudné záchranné brzdy z pre-mortem analýzy, které tě reálně ochrání před krachem.
+
+PID Lock (Anti-Zombie): Tohle Claudovi naordinujeme hned na začátek. Skript při startu vytvoří prázdný soubor marketpal.lock. Každý další pokus o spuštění bota zkontroluje, jestli ten soubor existuje. Pokud ano, skript zahlásí "Už běžím, nebudu klonovat příkazy!" a okamžitě se ukončí.
+
+Hard Stropy (Anti-Fat Finger): V modulu RiskManager zavedeme natvrdo zapsané konstanty jako MAX_POSITION_SIZE_USD = 500. Cokoliv z té tvojí AI poroty vypadne, musí projít tímhle sítem. Pokud si AI kvůli chybě v datech usmyslí koupit za milion, síto to nepustí.
+
+3. Zrcadlo pro bota (Equity Curve)
+
+Aby bot dokázal vnímat sám sebe, vytvoříme mu malý "Účetní" modul, který ho bude hlídat.
+
+Každý den o půlnoci bot zavolá API tvého brokera a zjistí celkovou hodnotu tvého portfolia. Tu uloží do samostatného souboru equity_log.parquet.
+
+Z tohoto logu si bot sám spočítá, jak se mu daří (např. 20denní klouzavý průměr své vlastní úspěšnosti).
+
+Pokud tvůj kapitál klesne pod tento klouzavý průměr (znamená to, že strategie přestala na trhu fungovat), bot vyhlásí stopku a přepne exekuci příkazů do režimu Paper Trading. Bude dál dělat rozhodnutí, ale už jen "na papír", dokud se trh nevrátí do normálu nebo dokud mu to nespravíš.
+
+Máme vyřešenou kompletní logiku stahovače i pojistky. Jde se na věc. Otevíráš nový terminál s Claudem. Jak přesně zní to tvé úplně první zadání, které mu teď hodíš na stůl?
+
+====================
+

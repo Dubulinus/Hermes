@@ -1,0 +1,51 @@
+Pokračuji v projektu Hermes (fáze Fenix) - osobní quant trading systém, inspirace Jim Simons.
+Je mi 17, mám minimální zkušenosti s kódováním. Rozumím obecné logice/propojení věcí,
+ale nerozumím dostatečně samotnému kódu  - potřebuju
+se to  naučit, ne jen kopírovat co dostanu.
+STAV PROJEKTU:
+- Repo: github.com/Dubulinus/Hermes (private), lokálně C:\HERMES_FENIX, VSCode, Python 3.11, venv
+- Stroje: ThinkPad (dev/kódění), "ghettoserver" starý laptop (dlouhé výpočty), Raspberry Pi 4B
+  (bude execution - posílání příkazů brokerovi), starý tower s Ubuntu server 256GB (zálohy)
+- Filozofie: čistě free data zdroje, žádné placené. Cíl: najít alfu přes hodně různorodých
+  dat (OHLCV, SEC, makro, insider trading/"velryby", časem i netradiční jako lety firemních
+  tryskáčů, Google Trends, kongresmani atd.), pak testovat strategie, pak risk management.
+CO UŽ FUNGUJE (3 fetchery, stejný BaseFetcher vzor, ukládají do data/raw/*.parquet):
+- src/ingestion/ohlcv.py - hodinová OHLCV data přes yfinance (AAPL, MSFT, SPY)
+- src/ingestion/sec_edgar.py - SEC fundamentals (XBRL) + metadata "whale" filings
+  (Form 4 insider, 13D/13G aktivisté, 8-K). POZOR: Form 4 zatím jen metadata (datum, typ),
+  NE detail (kdo kolik koupil/prodal) - to je v XML uvnitř filingu, ještě neparsováno.
+- src/ingestion/fred.py - makro data (DGS10, CPIAUCSL, UNRATE)
+- src/research/explore_data.py - VSCode "# %%" interaktivní buňky na prohlížení dat
+- src/research/test_momentum_hypothesis.py - první statistický test (lag-1 autokorelace
+  na AAPL hodinových datech). Výsledek: Pearson 0.008 (p=0.57), Spearman -0.024 (p=0.08) -
+  žádný statisticky významný vzorec, což je normální/očekávaný výsledek.
+CO CHYBÍ / DOMLUVENÉ DALŠÍ KROKY (zatím neuděláno):
+1. Rozšířit universe z 2 firem na ~15-30 (různé sektory) - potřeba pro cross-sectional testy
+2. Doparsovat Form 4 XML (skutečné nákup/prodej insiderů, ne jen metadata)
+3. Přepsat momentum test na cross-sectional verzi (napříč tickery, ne jen v čase u jednoho)
+4. Založit research/hypothesis_log.md - zapisovat hypotézy PŘED testováním (ochrana proti
+   p-hackingu/multiple testing problému)
+BACKLOG (IDEAS_BACKLOG.md, NEŘEŠIT teď, jen připomínka do budoucna):
+Telegram bot, triple-barrier labeling, purged k-fold CV, walk-forward validace,
+risk management vrstva, multi-agent AI systém (názorové "osobnosti" + manažer rozhodování)
+CO CHCI V TOMHLE CHATU:
+1. Víc diskutovat/plánovat budoucnost a možnosti projektu (ne hned kódit)
+2. Dozvědět se víc o "zákoutích" quant tématu obecně
+3. HLAVNĚ: naučit se reálně rozumět kódu, co už mám - projít existující soubory
+   (ohlcv.py, sec_edgar.py, fred.py, base.py) řádek po řádku, vysvětlit syntaxi Pythonu
+   na tom, co už napsal - ne abstraktní tutoriál, ale rozbor MÉHO vlastního kódu, ať to
+   umím sám replikovat a časem upravovat. Buď trpělivý, neházej mi hned další hotové
+   soubory, dokud nepotvrdím, že rozumím tomu předchozímu. jinak. navadej me spis. davej mi otazky, jak bych to vyresil, gemini to dela stylem "predstav si ze posles asistenta do yfinance a bude hledat aapl", spis at to vyresim sam. ps: pojdme udelat nejake mega nudne ale mega dulezite veci, zacneme treba tim logem. jeste chci trosku snit nad tim, jake funkce pridame, prosim. pak pujdem dal, asi to xml parsovani ne? jo a je treba udelat nejaky log, abyste s claudem vedeli kde jsme s tim druhym skoncili yk.
+
+   Aktuální verze: 0.1.4 (Pre-Alpha)
+Poslední dokončený úkol: Napsán kód pro stahování SEC dat.
+Aktuální překážka (Blocker): Udělat XML parsing
+Co se očekává od AI: 
+
+1: Navrhni kód XML parseru a navrhni logiku pro dávkové (chunk) zpracování, aby nám neklekl server.
+
+2: RotatingFileHandler.
+Když bot běží 24/7, logovací soubor neustále roste. Pokud mu nenastavíš limit, za pár měsíců ti ten log sežere všechny zbytky místa na disku a systém umře. RotatingFileHandler zajistí, že jakmile má log třeba 5 MB, systém ho zabalí, uloží jako archiv a začne psát do nového. Budeš mít složku s logy za posledních 10 dní a zbytek se bude automaticky mazat.
+
+Tohle Claudovi nařiď hned jako první věc. Bez toho neuvidíš, kde ti bot krvácí peníze.
+

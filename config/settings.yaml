@@ -1,0 +1,33 @@
+# Hermes - hlavni konfigurace
+# Secrets (API klice) patri do config/secrets.env, NE sem.
+
+project:
+  name: hermes
+  phase: fenix-mvp
+
+paths:
+  data_raw: data/raw
+  data_processed: data/processed
+  data_cache: data/cache
+
+universe:
+  equities:
+    - AAPL
+    - MSFT
+  benchmarks:
+    - SPY
+
+ohlcv:
+  interval: 1h
+  period: 730d
+
+sec_edgar:
+  # SEC vyzaduje smysluplny User-Agent s kontaktem, jinak blokuje pozadavky
+  user_agent: "Jacob Cross panjakubkriz@gmail.com"
+
+fred:
+  # klic zdarma na https://fred.stlouisfed.org/docs/api/api_key.html
+  series:
+    - DGS10   # 10Y Treasury yield
+    - CPIAUCSL  # CPI
+    - UNRATE  # nezamestnanost

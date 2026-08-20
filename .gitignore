@@ -1,0 +1,20 @@
+# Tajnosti a klíče (Svatý grál, tohle nesmí ven)
+.env
+.env.*
+
+# Virtuální prostředí (Zabránění nahrání linuxového balastu na web)
+venv/
+env/
+
+# Python odpad a cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Lokální databáze a stahovaná data (Na GitHub nepatří gigabyty Parquet souborů)
+*.parquet
+data/
+*_TEMP.parquet
+
+# VS Code nastavení (Ať se ti to nebije s ThinkBookem)
+.vscode/
