@@ -21,12 +21,15 @@ Notes:
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 import pandas as pd
+import requests
 import yfinance as yf
 
 from src.ingestion.base import BaseFetcher
+from src.utils.config import PROJECT_ROOT
 
 # --- Config -----------------------------------------------------------
 
@@ -48,7 +51,13 @@ class YFinanceCollector(BaseFetcher):
 
     category = "ohlcv"
 
-    def fetch(self, ticker: str, interval: str, period: str) -> pd.DataFrame | None:
+    def fetch(
+        self,
+        ticker: str,
+        interval: str,
+        period: str | None = None,
+        start: pd.Timestamp | None = None,
+    ) -> pd.DataFrame | None:
         """
         Download OHLCV data for one ticker.
 
@@ -58,8 +67,12 @@ class YFinanceCollector(BaseFetcher):
             Ticker symbol (e.g., "AAPL").
         interval : str
             Data interval (e.g., "1h", "1d").
-        period : str
-            Period of data to download (e.g., "730d", "max").
+        period : str | None
+            Period of data to download (e.g., "730d", "max"). Used when
+            ``start`` is not provided.
+        start : pandas.Timestamp | None
+            Download data starting at this timestamp. Takes precedence over
+            ``period``.
 
         Returns
         -------
@@ -68,15 +81,33 @@ class YFinanceCollector(BaseFetcher):
             Returns None on failure or empty data.
         """
         try:
-            df = yf.download(
-                ticker,
-                interval=interval,
-                period=period,
-                auto_adjust=True,
-                progress=False,
-            )
-        except Exception as e:
-            logger.error(f"{ticker}: fetch failed - {e}")
+            if start is not None:
+                df = yf.download(
+                    ticker,
+                    interval=interval,
+                    start=start,
+                    auto_adjust=True,
+                    progress=False,
+                )
+            elif period is not None:
+                df = yf.download(
+                    ticker,
+                    interval=interval,
+                    period=period,
+                    auto_adjust=True,
+                    progress=False,
+                )
+            else:
+                raise ValueError("Either period or start must be provided")
+        except (
+            KeyError,
+            OSError,
+            RuntimeError,
+            TypeError,
+            ValueError,
+            requests.RequestException,
+        ) as error:
+            logger.error(f"{ticker}: fetch failed - {error}")
             return None
 
         if df is None or df.empty:
@@ -87,14 +118,14 @@ class YFinanceCollector(BaseFetcher):
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-        # Ensure the index is timezone-aware and in UTC
-        # yfinance returns timezone-naive index for some data? We make it UTC.
-        if df.index.tz is None:
+        # Ensure the index is timezone-aware and in UTC.
+        datetime_index = pd.DatetimeIndex(df.index)
+        if datetime_index.tz is None:
             # If naive, localize to UTC
-            df.index = df.index.tz_localize("UTC")
+            df.index = datetime_index.tz_localize("UTC")
         else:
             # If already timezone-aware, convert to UTC
-            df.index = df.index.tz_convert("UTC")
+            df.index = datetime_index.tz_convert("UTC")
 
         # Reset index to make timestamp a column
         df.index.name = "timestamp"
@@ -104,12 +135,16 @@ class YFinanceCollector(BaseFetcher):
         df["ticker"] = ticker
 
         # Reorder columns to have timestamp first
-        cols = ["timestamp", "ticker"] + [c for c in df.columns if c not in ["timestamp", "ticker"]]
+        cols = ["timestamp", "ticker"] + [
+            c for c in df.columns if c not in ["timestamp", "ticker"]
+        ]
         df = df[cols]
 
         return df
 
-    def save_data(self, df: pd.DataFrame, ticker: str, interval: str, out_dir: Path | None = None) -> Path:
+    def save_data(
+        self, df: pd.DataFrame, ticker: str, interval: str, out_dir: Path | None = None
+    ) -> Path:
         """
         Save DataFrame as parquet in data/raw/ohlcv/ using the base class save method.
 
@@ -129,9 +164,20 @@ class YFinanceCollector(BaseFetcher):
         Path
             Path to the saved file.
         """
-        # Use the base class save method, which expects a filename and optional directory
         filename = f"{ticker}_{interval}"
-        return self.save(df, filename, out_dir=out_dir)
+        base_dir = out_dir or (PROJECT_ROOT / "data" / "raw" / self.category)
+        base_dir.mkdir(parents=True, exist_ok=True)
+        path = base_dir / f"{filename}.parquet"
+        temporary_path = base_dir / f".{filename}.tmp.parquet"
+
+        try:
+            df.to_parquet(temporary_path, index=False)
+            os.replace(temporary_path, path)
+        finally:
+            if temporary_path.exists():
+                temporary_path.unlink()
+
+        return path
 
 
 def download_ohlcv(
@@ -161,19 +207,44 @@ def download_ohlcv(
     """
     collector = YFinanceCollector()
     saved: dict[str, Path] = {}
+    target_dir = out_dir or (PROJECT_ROOT / "data" / "raw" / collector.category)
 
     for ticker in tickers:
-        logger.info(f"Downloading {ticker} ({interval}, {period})...")
-        df = collector.fetch(ticker, interval, period)
+        target_path = target_dir / f"{ticker}_{interval}.parquet"
+        existing_df: pd.DataFrame | None = None
+
+        if target_path.exists():
+            existing_df = pd.read_parquet(target_path)
+            latest_timestamp = pd.to_datetime(existing_df["timestamp"], utc=True).max()
+            logger.info(
+                f"Downloading {ticker} ({interval}, start={latest_timestamp})..."
+            )
+            df = collector.fetch(ticker, interval, start=latest_timestamp)
+        else:
+            logger.info(f"Downloading {ticker} ({interval}, {period})...")
+            df = collector.fetch(ticker, interval, period=period)
 
         if df is None:
+            if existing_df is not None:
+                logger.info(f"{ticker}: up to date")
             continue
+
+        if existing_df is not None:
+            df = pd.concat([existing_df, df], ignore_index=True)
+            df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+            df = (
+                df.drop_duplicates(subset=["timestamp"], keep="last")
+                .sort_values("timestamp")
+                .reset_index(drop=True)
+            )
 
         path = collector.save_data(df, ticker, interval, out_dir)
         saved[ticker] = path
         logger.info(f"{ticker}: saved {len(df)} rows -> {path}")
 
-    logger.info(f"Finished. Successfully downloaded {len(saved)}/{len(tickers)} tickers.")
+    logger.info(
+        f"Finished. Successfully downloaded {len(saved)}/{len(tickers)} tickers."
+    )
     return saved
 
 
